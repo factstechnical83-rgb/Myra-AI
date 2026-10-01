@@ -22,7 +22,7 @@ jobs:
           fi
           find src_temp -name "build.gradle*" -execdir cp -r . "$GITHUB_WORKSPACE" \; 2>/dev/null || true
 
-      - name: Fix Manifest and Dependencies
+      - name: Fix Manifest, Layout Typo & Dependencies
         run: |
           # 1. Clean Manifest missing attributes
           find . -name "AndroidManifest.xml" -exec sed -i '/data_extraction_rules/d' {} +
@@ -44,11 +44,20 @@ jobs:
             fi
           done
 
-          # 3. Add ONLY missing xmlns:app cleanly without duplicating xmlns:android
+          # 3. Add xmlns:app if missing
           find . -name "activity_main.xml" | while read file; do
             if ! grep -q "xmlns:app" "$file"; then
               sed -i 's|xmlns:android="http://schemas.android.com/apk/res/android"|xmlns:android="http://schemas.android.com/apk/res/android"\n    xmlns:app="http://schemas.android.com/apk/res-auto"|g' "$file"
             fi
+            # 4. Fix typo: layout_constraint*To* -> layout_constraint*_*
+            sed -i 's/layout_constraintTopToTopOf/layout_constraintTop_toTopOf/g' "$file"
+            sed -i 's/layout_constraintTopToBottomOf/layout_constraintTop_toBottomOf/g' "$file"
+            sed -i 's/layout_constraintBottomToTopOf/layout_constraintBottom_toTopOf/g' "$file"
+            sed -i 's/layout_constraintBottomToBottomOf/layout_constraintBottom_toBottomOf/g' "$file"
+            sed -i 's/layout_constraintStartToStartOf/layout_constraintStart_toStartOf/g' "$file"
+            sed -i 's/layout_constraintStartToEndOf/layout_constraintStart_toEndOf/g' "$file"
+            sed -i 's/layout_constraintEndToEndOf/layout_constraintEnd_toEndOf/g' "$file"
+            sed -i 's/layout_constraintEndToStartOf/layout_constraintEnd_toStartOf/g' "$file"
           done
 
       - name: Set up JDK 17
