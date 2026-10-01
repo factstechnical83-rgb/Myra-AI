@@ -22,13 +22,27 @@ jobs:
           fi
           find src_temp -name "build.gradle*" -execdir cp -r . "$GITHUB_WORKSPACE" \; 2>/dev/null || true
 
-      - name: Fix Missing Manifest Resources
+      - name: Fix Missing Manifest Resources & Dependencies
         run: |
-          # Missing icons aur backup rules ki line AndroidManifest se hatao
+          # 1. Clean Manifest
           find . -name "AndroidManifest.xml" -exec sed -i '/data_extraction_rules/d' {} +
           find . -name "AndroidManifest.xml" -exec sed -i '/backup_rules/d' {} +
           find . -name "AndroidManifest.xml" -exec sed -i 's/android:icon="[^"]*"/android:icon="@android:drawable\/ic_dialog_info"/g' {} +
           find . -name "AndroidManifest.xml" -exec sed -i 's/android:roundIcon="[^"]*"/android:roundIcon="@android:drawable\/ic_dialog_info"/g' {} +
+
+          # 2. Add Missing ConstraintLayout & Material Dependencies
+          find . -name "build.gradle*" | while read file; do
+            if grep -q "dependencies {" "$file"; then
+              sed -i '/dependencies {/a \    implementation "androidx.constraintlayout:constraintlayout:2.1.4"\n    implementation "com.google.android.material:material:1.11.0"' "$file"
+            fi
+          done
+
+          # 3. Ensure XML Schema in activity_main.xml
+          find . -name "activity_main.xml" | while read file; do
+            if ! grep -q 'xmlns:app="http://schemas.android.com/apk/res-auto"' "$file"; then
+              sed -i 's/<androidx.constraintlayout.widget.ConstraintLayout/<androidx.constraintlayout.widget.ConstraintLayout xmlns:app="http://schemas.android.com/apk/res-auto"/g' "$file"
+            fi
+          done
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
