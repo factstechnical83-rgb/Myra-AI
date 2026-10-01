@@ -12,18 +12,16 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Extract Environment File
+      - name: Extract Archive
         run: |
-          mkdir -p extracted_temp
-          # Extract whatever archive exists
+          mkdir -p src_temp
           if ls *.zip 1> /dev/null 2>&1; then
-            unzip -o *.zip -d extracted_temp
-          elif ls *.tar.gz 1> /dev/null 2>&1 || ls aistudio_* 1> /dev/null 2>&1; then
-            tar -xvf aistudio_* -C extracted_temp || unzip -o aistudio_* -d extracted_temp || true
+            unzip -o *.zip -d src_temp
+          else
+            tar -xvf aistudio_* -C src_temp 2>/dev/null || unzip -o aistudio_* -d src_temp 2>/dev/null || true
           fi
-          
-          # Move files to root
-          find extracted_temp -name "gradlew" -execdir cp -r . "$GITHUB_WORKSPACE" \; || true
+          # Copy everything into project root
+          find src_temp -name "build.gradle*" -execdir cp -r . "$GITHUB_WORKSPACE" \; 2>/dev/null || true
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -31,11 +29,17 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Generate Gradle Wrapper
+        run: gradle wrapper
+
       - name: Grant execute permission for gradlew
-        run: chmod +x gradlew || true
+        run: chmod +x gradlew
 
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace
+        run: ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
