@@ -35,6 +35,8 @@ jobs:
             if grep -q "dependencies {" "$file"; then
               sed -i '/dependencies {/a \    implementation("androidx.constraintlayout:constraintlayout:2.1.4")\n    implementation("com.google.android.material:material:1.11.0")' "$file"
             fi
+            # Update generativeai SDK to latest stable
+            sed -i 's/com.google.ai.client.generativeai:generativeai:[^"]*/com.google.ai.client.generativeai:generativeai:0.9.0/g' "$file"
           done
 
           # Fallback for Groovy syntax
@@ -42,6 +44,7 @@ jobs:
             if grep -q "dependencies {" "$file"; then
               sed -i '/dependencies {/a \    implementation "androidx.constraintlayout:constraintlayout:2.1.4"\n    implementation "com.google.android.material:material:1.11.0"' "$file"
             fi
+            sed -i 's/com.google.ai.client.generativeai:generativeai:[^"]*/com.google.ai.client.generativeai:generativeai:0.9.0/g' "$file"
           done
 
           # 3. Add xmlns:app if missing and fix layout typos
@@ -59,9 +62,11 @@ jobs:
             sed -i 's/layout_constraintEndToStartOf/layout_constraintEnd_toStartOf/g' "$file"
           done
 
-          # 4. Fix Gemini model name across all Kotlin and Java files
-          find . -type f \( -name "*.kt" -o -name "*.java" \) -exec sed -i 's/"gemini-1.5-flash"/"gemini-1.5-flash-latest"/g' {} +
-          find . -type f \( -name "*.kt" -o -name "*.java" \) -exec sed -i 's/"models\/gemini-1.5-flash"/"gemini-1.5-flash-latest"/g' {} +
+          # 4. Set stable model name 'gemini-pro' across all code files
+          find . -type f \( -name "*.kt" -o -name "*.java" \) -exec sed -i 's/"gemini-1.5-flash-latest"/"gemini-pro"/g' {} +
+          find . -type f \( -name "*.kt" -o -name "*.java" \) -exec sed -i 's/"gemini-1.5-flash"/"gemini-pro"/g' {} +
+          find . -type f \( -name "*.kt" -o -name "*.java" \) -exec sed -i 's/"models\/gemini-1.5-flash-latest"/"gemini-pro"/g' {} +
+          find . -type f \( -name "*.kt" -o -name "*.java" \) -exec sed -i 's/"models\/gemini-1.5-flash"/"gemini-pro"/g' {} +
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
