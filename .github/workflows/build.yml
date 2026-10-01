@@ -22,7 +22,7 @@ jobs:
           fi
           find src_temp -name "build.gradle*" -execdir cp -r . "$GITHUB_WORKSPACE" \; 2>/dev/null || true
 
-      - name: Fix Manifest, Layout Typo & Dependencies
+      - name: Fix Manifest, Layout, Dependencies & Gemini Model Name
         run: |
           # 1. Clean Manifest missing attributes
           find . -name "AndroidManifest.xml" -exec sed -i '/data_extraction_rules/d' {} +
@@ -44,12 +44,11 @@ jobs:
             fi
           done
 
-          # 3. Add xmlns:app if missing
+          # 3. Add xmlns:app if missing and fix layout typos
           find . -name "activity_main.xml" | while read file; do
             if ! grep -q "xmlns:app" "$file"; then
               sed -i 's|xmlns:android="http://schemas.android.com/apk/res/android"|xmlns:android="http://schemas.android.com/apk/res/android"\n    xmlns:app="http://schemas.android.com/apk/res-auto"|g' "$file"
             fi
-            # 4. Fix typo: layout_constraint*To* -> layout_constraint*_*
             sed -i 's/layout_constraintTopToTopOf/layout_constraintTop_toTopOf/g' "$file"
             sed -i 's/layout_constraintTopToBottomOf/layout_constraintTop_toBottomOf/g' "$file"
             sed -i 's/layout_constraintBottomToTopOf/layout_constraintBottom_toTopOf/g' "$file"
@@ -59,6 +58,10 @@ jobs:
             sed -i 's/layout_constraintEndToEndOf/layout_constraintEnd_toEndOf/g' "$file"
             sed -i 's/layout_constraintEndToStartOf/layout_constraintEnd_toStartOf/g' "$file"
           done
+
+          # 4. Fix Gemini model name across all Kotlin and Java files
+          find . -type f \( -name "*.kt" -o -name "*.java" \) -exec sed -i 's/"gemini-1.5-flash"/"gemini-1.5-flash-latest"/g' {} +
+          find . -type f \( -name "*.kt" -o -name "*.java" \) -exec sed -i 's/"models\/gemini-1.5-flash"/"gemini-1.5-flash-latest"/g' {} +
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
