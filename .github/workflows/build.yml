@@ -20,7 +20,6 @@ jobs:
           else
             tar -xvf aistudio_* -C src_temp 2>/dev/null || unzip -o aistudio_* -d src_temp 2>/dev/null || true
           fi
-          # Copy everything into project root
           find src_temp -name "build.gradle*" -execdir cp -r . "$GITHUB_WORKSPACE" \; 2>/dev/null || true
 
       - name: Set up JDK 17
@@ -29,17 +28,19 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Gradle
+      - name: Setup Compatible Gradle 8.4
         uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.4'
 
-      - name: Generate Gradle Wrapper
-        run: gradle wrapper
+      - name: Generate Wrapper with 8.4
+        run: gradle wrapper --gradle-version 8.4
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Xmx2048m"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
