@@ -22,7 +22,7 @@ jobs:
           fi
           find src_temp -name "build.gradle*" -execdir cp -r . "$GITHUB_WORKSPACE" \; 2>/dev/null || true
 
-      - name: Fix Missing Manifest Resources & Dependencies
+      - name: Fix Manifest and Dependencies
         run: |
           # 1. Clean Manifest missing attributes
           find . -name "AndroidManifest.xml" -exec sed -i '/data_extraction_rules/d' {} +
@@ -44,9 +44,11 @@ jobs:
             fi
           done
 
-          # 3. Inject full namespaces into root tag of layout files
+          # 3. Add ONLY missing xmlns:app cleanly without duplicating xmlns:android
           find . -name "activity_main.xml" | while read file; do
-            sed -i 's|<androidx.constraintlayout.widget.ConstraintLayout|<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" xmlns:tools="http://schemas.android.com/tools"|g' "$file"
+            if ! grep -q "xmlns:app" "$file"; then
+              sed -i 's|xmlns:android="http://schemas.android.com/apk/res/android"|xmlns:android="http://schemas.android.com/apk/res/android"\n    xmlns:app="http://schemas.android.com/apk/res-auto"|g' "$file"
+            fi
           done
 
       - name: Set up JDK 17
