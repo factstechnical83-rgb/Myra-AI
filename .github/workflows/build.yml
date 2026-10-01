@@ -44,11 +44,9 @@ jobs:
             fi
           done
 
-          # 3. Ensure XML Schema in activity_main.xml
+          # 3. Inject full namespaces into root tag of layout files
           find . -name "activity_main.xml" | while read file; do
-            if ! grep -q 'xmlns:app="http://schemas.android.com/apk/res-auto"' "$file"; then
-              sed -i 's/<androidx.constraintlayout.widget.ConstraintLayout/<androidx.constraintlayout.widget.ConstraintLayout xmlns:app="http://schemas.android.com/apk/res-auto"/g' "$file"
-            fi
+            sed -i 's|<androidx.constraintlayout.widget.ConstraintLayout|<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" xmlns:tools="http://schemas.android.com/tools"|g' "$file"
           done
 
       - name: Set up JDK 17
