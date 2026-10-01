@@ -24,14 +24,21 @@ jobs:
 
       - name: Fix Missing Manifest Resources & Dependencies
         run: |
-          # 1. Clean Manifest
+          # 1. Clean Manifest missing attributes
           find . -name "AndroidManifest.xml" -exec sed -i '/data_extraction_rules/d' {} +
           find . -name "AndroidManifest.xml" -exec sed -i '/backup_rules/d' {} +
           find . -name "AndroidManifest.xml" -exec sed -i 's/android:icon="[^"]*"/android:icon="@android:drawable\/ic_dialog_info"/g' {} +
           find . -name "AndroidManifest.xml" -exec sed -i 's/android:roundIcon="[^"]*"/android:roundIcon="@android:drawable\/ic_dialog_info"/g' {} +
 
-          # 2. Add Missing ConstraintLayout & Material Dependencies
-          find . -name "build.gradle*" | while read file; do
+          # 2. Add dependencies with Kotlin DSL syntax
+          find . -name "build.gradle.kts" | while read file; do
+            if grep -q "dependencies {" "$file"; then
+              sed -i '/dependencies {/a \    implementation("androidx.constraintlayout:constraintlayout:2.1.4")\n    implementation("com.google.android.material:material:1.11.0")' "$file"
+            fi
+          done
+
+          # Fallback for Groovy syntax
+          find . -name "build.gradle" ! -name "*.kts" | while read file; do
             if grep -q "dependencies {" "$file"; then
               sed -i '/dependencies {/a \    implementation "androidx.constraintlayout:constraintlayout:2.1.4"\n    implementation "com.google.android.material:material:1.11.0"' "$file"
             fi
