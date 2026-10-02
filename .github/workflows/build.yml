@@ -22,35 +22,36 @@ jobs:
           fi
           find src_temp -name "build.gradle*" -execdir cp -r . "$GITHUB_WORKSPACE" \; 2>/dev/null || true
 
-      - name: Fix Manifest, Layout, Dependencies & Gemini API Version
+      - name: Add Call Permissions & Intent Handling
         run: |
-          # 1. Clean Manifest missing attributes
+          # 1. Manifest clean & Call / Contact Permissions
           find . -name "AndroidManifest.xml" -exec sed -i '/data_extraction_rules/d' {} +
           find . -name "AndroidManifest.xml" -exec sed -i '/backup_rules/d' {} +
           find . -name "AndroidManifest.xml" -exec sed -i 's/android:icon="[^"]*"/android:icon="@android:drawable\/ic_dialog_info"/g' {} +
           find . -name "AndroidManifest.xml" -exec sed -i 's/android:roundIcon="[^"]*"/android:roundIcon="@android:drawable\/ic_dialog_info"/g' {} +
 
-          # 2. Add Package Visibility Queries
           find . -name "AndroidManifest.xml" | while read file; do
+            if ! grep -q "android.permission.CALL_PHONE" "$file"; then
+              sed -i 's|<application|<uses-permission android:name="android.permission.CALL_PHONE" />\n    <uses-permission android:name="android.permission.READ_CONTACTS" />\n    <application|g' "$file"
+            fi
             if ! grep -q "<queries>" "$file"; then
-              sed -i 's|</manifest>|    <queries>\n        <package android:name="com.facebook.katana" />\n        <package android:name="com.whatsapp" />\n        <package android:name="com.instagram.android" />\n        <package android:name="com.google.android.youtube" />\n        <package android:name="com.android.chrome" />\n        <intent>\n            <action android:name="android.intent.action.VIEW" />\n            <category android:name="android.intent.category.BROWSABLE" />\n            <data android:scheme="https" />\n        </intent>\n    </queries>\n</manifest>|g' "$file"
+              sed -i 's|</manifest>|    <queries>\n        <intent>\n            <action android:name="android.intent.action.DIAL" />\n        </intent>\n        <intent>\n            <action android:name="android.intent.action.CALL" />\n        </intent>\n    </queries>\n</manifest>|g' "$file"
             fi
           done
 
-          # 3. Add Dependencies
+          # 2. Dependencies
           find . -name "build.gradle.kts" | while read file; do
             if grep -q "dependencies {" "$file"; then
               sed -i '/dependencies {/a \    implementation("androidx.constraintlayout:constraintlayout:2.1.4")\n    implementation("com.google.android.material:material:1.11.0")' "$file"
             fi
           done
-
           find . -name "build.gradle" ! -name "*.kts" | while read file; do
             if grep -q "dependencies {" "$file"; then
               sed -i '/dependencies {/a \    implementation "androidx.constraintlayout:constraintlayout:2.1.4"\n    implementation "com.google.android.material:material:1.11.0"' "$file"
             fi
           done
 
-          # 4. Fix Layout Typos
+          # 3. Layout Typo fix
           find . -name "activity_main.xml" | while read file; do
             if ! grep -q "xmlns:app" "$file"; then
               sed -i 's|xmlns:android="http://schemas.android.com/apk/res/android"|xmlns:android="http://schemas.android.com/apk/res/android"\n    xmlns:app="http://schemas.android.com/apk/res-auto"|g' "$file"
@@ -65,17 +66,12 @@ jobs:
             sed -i 's/layout_constraintEndToStartOf/layout_constraintEnd_toStartOf/g' "$file"
           done
 
-          # 5. Fix GenerativeModel initialization (force v1 endpoint and gemini-1.5-flash)
+          # 4. Fix 404: Replace 'models/gemini-*' with bare model names
           find . -type f \( -name "*.kt" -o -name "*.java" \) | while read file; do
-            # Replace model strings
             sed -i 's/"models\/gemini-1.5-flash"/"gemini-1.5-flash"/g' "$file"
+            sed -i 's/"models\/gemini-1.5-flash-latest"/"gemini-1.5-flash"/g' "$file"
             sed -i 's/"models\/gemini-pro"/"gemini-1.5-flash"/g' "$file"
             sed -i 's/"gemini-pro"/"gemini-1.5-flash"/g' "$file"
-            sed -i 's/"gemini-1.5-flash-latest"/"gemini-1.5-flash"/g' "$file"
-            
-            # Switch any hardcoded v1beta to v1
-            sed -i 's/"v1beta"/"v1"/g' "$file"
-            sed -i 's/RequestOptions("v1beta")/RequestOptions("v1")/g' "$file"
           done
 
       - name: Set up JDK 17
