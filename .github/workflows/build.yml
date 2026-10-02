@@ -22,7 +22,7 @@ jobs:
           fi
           find src_temp -name "build.gradle*" -execdir cp -r . "$GITHUB_WORKSPACE" \; 2>/dev/null || true
 
-      - name: Fix Manifest, SDK Version & Gemini Models
+      - name: Fix Manifest, Layout, Dependencies & Model
         run: |
           # 1. Clean Manifest missing attributes
           find . -name "AndroidManifest.xml" -exec sed -i '/data_extraction_rules/d' {} +
@@ -37,19 +37,19 @@ jobs:
             fi
           done
 
-          # 3. Upgrade Generative AI SDK to latest 0.12.0
+          # 3. Add Dependencies with proper 0.9.0 SDK
           find . -name "build.gradle.kts" | while read file; do
             if grep -q "dependencies {" "$file"; then
               sed -i '/dependencies {/a \    implementation("androidx.constraintlayout:constraintlayout:2.1.4")\n    implementation("com.google.android.material:material:1.11.0")' "$file"
             fi
-            sed -i 's/com.google.ai.client.generativeai:generativeai:[^"]*/com.google.ai.client.generativeai:generativeai:0.12.0/g' "$file"
+            sed -i 's/com.google.ai.client.generativeai:generativeai:[^"]*/com.google.ai.client.generativeai:generativeai:0.9.0/g' "$file"
           done
 
           find . -name "build.gradle" ! -name "*.kts" | while read file; do
             if grep -q "dependencies {" "$file"; then
               sed -i '/dependencies {/a \    implementation "androidx.constraintlayout:constraintlayout:2.1.4"\n    implementation "com.google.android.material:material:1.11.0"' "$file"
             fi
-            sed -i 's/com.google.ai.client.generativeai:generativeai:[^"]*/com.google.ai.client.generativeai:generativeai:0.12.0/g' "$file"
+            sed -i 's/com.google.ai.client.generativeai:generativeai:[^"]*/com.google.ai.client.generativeai:generativeai:0.9.0/g' "$file"
           done
 
           # 4. Fix Layout typos
@@ -67,11 +67,12 @@ jobs:
             sed -i 's/layout_constraintEndToStartOf/layout_constraintEnd_toStartOf/g' "$file"
           done
 
-          # 5. Set correct model identifier for SDK 0.12.0
-          find . -type f \( -name "*.kt" -o -name "*.java" \) -exec sed -i 's/"gemini-pro"/"gemini-1.5-flash"/g' {} +
+          # 5. Model name: strip any prefix and set cleanly to "gemini-1.5-flash"
           find . -type f \( -name "*.kt" -o -name "*.java" \) -exec sed -i 's/"models\/gemini-pro"/"gemini-1.5-flash"/g' {} +
-          find . -type f \( -name "*.kt" -o -name "*.java" \) -exec sed -i 's/"gemini-1.5-flash-latest"/"gemini-1.5-flash"/g' {} +
+          find . -type f \( -name "*.kt" -o -name "*.java" \) -exec sed -i 's/"gemini-pro"/"gemini-1.5-flash"/g' {} +
           find . -type f \( -name "*.kt" -o -name "*.java" \) -exec sed -i 's/"models\/gemini-1.5-flash-latest"/"gemini-1.5-flash"/g' {} +
+          find . -type f \( -name "*.kt" -o -name "*.java" \) -exec sed -i 's/"gemini-1.5-flash-latest"/"gemini-1.5-flash"/g' {} +
+          find . -type f \( -name "*.kt" -o -name "*.java" \) -exec sed -i 's/"models\/gemini-1.5-flash"/"gemini-1.5-flash"/g' {} +
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
